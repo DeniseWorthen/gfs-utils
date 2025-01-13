@@ -67,6 +67,3 @@ endif()
 
 # Build and install code.
 add_subdirectory(src)
-
-# Install utility scripts.
-add_subdirectory(ush)
