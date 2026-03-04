@@ -1,5 +1,4 @@
 program ocnicepost
-
   ! This program will remap MOM6 ocean or CICE6 ice output on the tripole grid to a
   ! rectilinear grid using pre-computed ESMF weights to remap the chosen fields to the
   ! destination grid and write the results to a new netCDF file. The ESMF weights needed
@@ -80,14 +79,14 @@ program ocnicepost
 
   call nf90_err(nf90_open(trim(input_file), nf90_nowrite, ncid), 'open: '//trim(input_file))
   if (do_ocnpost) then
-    call nf90_err(nf90_inq_dimid(ncid, 'z_l', varid), 'get dimension Id: z_l'//trim(input_file))
-    call nf90_err(nf90_inquire_dimension(ncid, varid, len=nlevs), 'get dimension Id: z_l'//trim(input_file))
+     call nf90_err(nf90_inq_dimid(ncid, 'z_l', varid), 'get dimension Id: z_l'//trim(input_file))
+     call nf90_err(nf90_inquire_dimension(ncid, varid, len=nlevs), 'get dimension Id: z_l'//trim(input_file))
   endif
   do n = 1,nvalid
      if (debug) then
         write(logunit,'(a12,i4,a10,3(a6))')trim(outvars(n)%var_name)//', ',outvars(n)%var_dimen, &
-           ', '//trim(outvars(n)%var_remapmethod),', '//trim(outvars(n)%var_grid),             &
-           ', '//trim(outvars(n)%var_pair),', '//trim(outvars(n)%var_pair_grid)
+             ', '//trim(outvars(n)%var_remapmethod),', '//trim(outvars(n)%var_grid),             &
+             ', '//trim(outvars(n)%var_pair),', '//trim(outvars(n)%var_pair_grid)
      end if
      call nf90_err(nf90_inq_varid(ncid, trim(outvars(n)%var_name), varid), 'get variable Id: '//trim(outvars(n)%var_name))
      call nf90_err(nf90_get_att(ncid, varid,  'long_name', outvars(n)%long_name), 'get variable attribute: long_name '//trim(outvars(n)%var_name))
@@ -262,159 +261,159 @@ program ocnicepost
   ! write the mapped fields
   ! --------------------------------------------------------
 
- if (write_netcdf) then
+  if (write_netcdf) then
 
-  allocate(out2d(nxr,nyr)); out2d = 0.0
-  allocate(out3d(nxr,nyr,nlevs)); out3d = 0.0
+     allocate(out2d(nxr,nyr)); out2d = 0.0
+     allocate(out3d(nxr,nyr,nlevs)); out3d = 0.0
 
-  fout = trim(ftype)//'.'//trim(fdst)//'.nc'
-  if (debug) write(logunit, '(a)')'output file: '//trim(fout)
+     fout = trim(ftype)//'.'//trim(fdst)//'.nc'
+     if (debug) write(logunit, '(a)')'output file: '//trim(fout)
 
-  call nf90_err(nf90_create(trim(fout), nf90_clobber, ncid), 'create: '//trim(fout))
-  call nf90_err(nf90_def_dim(ncid, 'longitude', nxr, idimid), 'define dimension: longitude')
-  call nf90_err(nf90_def_dim(ncid,  'latitude', nyr, jdimid), 'define dimension: latitude')
-  call nf90_err(nf90_def_dim(ncid, 'time', nf90_unlimited, timid), 'define dimension: time')
+     call nf90_err(nf90_create(trim(fout), nf90_clobber, ncid), 'create: '//trim(fout))
+     call nf90_err(nf90_def_dim(ncid, 'longitude', nxr, idimid), 'define dimension: longitude')
+     call nf90_err(nf90_def_dim(ncid,  'latitude', nyr, jdimid), 'define dimension: latitude')
+     call nf90_err(nf90_def_dim(ncid, 'time', nf90_unlimited, timid), 'define dimension: time')
 
-  ! define the time variable
-  call nf90_err(nf90_def_var(ncid, 'time', nf90_double, (/timid/), varid), 'define variable: time')
-  call nf90_err(nf90_put_att(ncid, varid,    'units', trim(timeunit)), 'put variable attribute: units')
-  call nf90_err(nf90_put_att(ncid,  varid, 'calendar', trim(timecal)), 'put variable attribute: calendar')
-  ! spatial grid
-  call nf90_err(nf90_def_var(ncid, 'longitude', nf90_float,  (/idimid/), varid), 'define variable: longitude')
-  call nf90_err(nf90_put_att(ncid, varid, 'units', 'degrees_east'), 'put variable attribute: units')
-  call nf90_err(nf90_def_var(ncid, 'latitude', nf90_float,  (/jdimid/), varid), 'define variable: latitude' )
-  call nf90_err(nf90_put_att(ncid, varid, 'units', 'degrees_north'), 'put variable attribute: units')
-  ! vertical grid
-  if (do_ocnpost) then
-     call nf90_err(nf90_def_dim(ncid,  'z_l',  nlevs  , kdimid), 'define dimension: z_l')
-     call nf90_err(nf90_def_dim(ncid,  'z_i',  nlevs+1, edimid), 'define dimension: z_i')
-     call nf90_err(nf90_def_var(ncid, 'z_l', nf90_float,  (/kdimid/), varid), 'define variable: z_l')
-     call nf90_err(nf90_put_att(ncid, varid,    'units', 'm'), 'put variable attribute: units')
-     call nf90_err(nf90_put_att(ncid, varid, 'positive', 'down'), 'put variable attribute: positive')
-     call nf90_err(nf90_def_var(ncid, 'z_i', nf90_float,  (/edimid/), varid), 'define variable: z_i')
-     call nf90_err(nf90_put_att(ncid, varid,    'units', 'm'), 'put variable attribute: units')
-     call nf90_err(nf90_put_att(ncid, varid, 'positive', 'down'), 'put variable attribute: positive')
+     ! define the time variable
+     call nf90_err(nf90_def_var(ncid, 'time', nf90_double, (/timid/), varid), 'define variable: time')
+     call nf90_err(nf90_put_att(ncid, varid,    'units', trim(timeunit)), 'put variable attribute: units')
+     call nf90_err(nf90_put_att(ncid,  varid, 'calendar', trim(timecal)), 'put variable attribute: calendar')
+     ! spatial grid
+     call nf90_err(nf90_def_var(ncid, 'longitude', nf90_float,  (/idimid/), varid), 'define variable: longitude')
+     call nf90_err(nf90_put_att(ncid, varid, 'units', 'degrees_east'), 'put variable attribute: units')
+     call nf90_err(nf90_def_var(ncid, 'latitude', nf90_float,  (/jdimid/), varid), 'define variable: latitude' )
+     call nf90_err(nf90_put_att(ncid, varid, 'units', 'degrees_north'), 'put variable attribute: units')
+     ! vertical grid
+     if (do_ocnpost) then
+        call nf90_err(nf90_def_dim(ncid,  'z_l',  nlevs  , kdimid), 'define dimension: z_l')
+        call nf90_err(nf90_def_dim(ncid,  'z_i',  nlevs+1, edimid), 'define dimension: z_i')
+        call nf90_err(nf90_def_var(ncid, 'z_l', nf90_float,  (/kdimid/), varid), 'define variable: z_l')
+        call nf90_err(nf90_put_att(ncid, varid,    'units', 'm'), 'put variable attribute: units')
+        call nf90_err(nf90_put_att(ncid, varid, 'positive', 'down'), 'put variable attribute: positive')
+        call nf90_err(nf90_def_var(ncid, 'z_i', nf90_float,  (/edimid/), varid), 'define variable: z_i')
+        call nf90_err(nf90_put_att(ncid, varid,    'units', 'm'), 'put variable attribute: units')
+        call nf90_err(nf90_put_att(ncid, varid, 'positive', 'down'), 'put variable attribute: positive')
+     end if
+
+     if (allocated(b2d)) then
+        do n = 1,nbilin2d
+           vname = trim(b2d(n)%var_name)
+           vunit = trim(b2d(n)%units)
+           vlong = trim(b2d(n)%long_name)
+           vfill = b2d(n)%var_fillvalue
+           call nf90_err(nf90_def_var(ncid, vname, nf90_float, (/idimid,jdimid,timid/), varid), 'define variable: '// vname)
+           call nf90_err(nf90_put_att(ncid, varid,      'units', vunit), 'put variable attribute: units')
+           call nf90_err(nf90_put_att(ncid, varid,  'long_name', vlong), 'put variable attribute: long_name')
+           call nf90_err(nf90_put_att(ncid, varid, '_FillValue', vfill), 'put variable attribute: FillValue')
+        enddo
+     end if
+     if (allocated(c2d)) then
+        do n = 1,nconsd2d
+           vname = trim(c2d(n)%var_name)
+           vunit = trim(c2d(n)%units)
+           vlong = trim(c2d(n)%long_name)
+           vfill = c2d(n)%var_fillvalue
+           call nf90_err(nf90_def_var(ncid, vname, nf90_float, (/idimid,jdimid,timid/), varid), 'define variable: '// vname)
+           call nf90_err(nf90_put_att(ncid, varid,      'units', vunit), 'put variable attribute: units' )
+           call nf90_err(nf90_put_att(ncid, varid,  'long_name', vlong), 'put variable attribute: long_name' )
+           call nf90_err(nf90_put_att(ncid, varid, '_FillValue', vfill), 'put variable attribute: FillValue' )
+        enddo
+     end if
+     if (allocated(b3d)) then
+        do n = 1,nbilin3d
+           vname = trim(b3d(n)%var_name)
+           vunit = trim(b3d(n)%units)
+           vlong = trim(b3d(n)%long_name)
+           vfill = b3d(n)%var_fillvalue
+           call nf90_err(nf90_def_var(ncid, vname, nf90_float, (/idimid,jdimid,kdimid,timid/), varid), 'define variable: '// vname)
+           call nf90_err(nf90_put_att(ncid, varid,      'units', vunit), 'put variable attribute: units' )
+           call nf90_err(nf90_put_att(ncid, varid,  'long_name', vlong), 'put variable attribute: long_name' )
+           call nf90_err(nf90_put_att(ncid, varid, '_FillValue', vfill), 'put variable attribute: FillValue' )
+        enddo
+     end if
+     call nf90_err(nf90_enddef(ncid), 'enddef: '// trim(fout))
+
+     ! dimensions
+     call nf90_err(nf90_inq_varid(ncid, 'longitude', varid), 'get variable Id: longitude')
+     call nf90_err(nf90_put_var(ncid,   varid, dstlon(:,1)), 'put variable: longitude')
+     call nf90_err(nf90_inq_varid(ncid,  'latitude', varid), 'get variable Id: latitude')
+     call nf90_err(nf90_put_var(ncid,   varid, dstlat(1,:)), 'put variable: latitude')
+     ! time
+     call nf90_err(nf90_inq_varid(ncid, 'time', varid), 'get variable Id: time')
+     call nf90_err(nf90_put_var(ncid, varid, timestamp), 'put variable: time')
+     ! vertical
+     if (do_ocnpost) then
+        call nf90_err(nf90_inq_varid(ncid, 'z_l', varid), 'get variable Id: z_l')
+        call nf90_err(nf90_put_var(ncid, varid, z_l)    , 'put variable: z_l')
+        call nf90_err(nf90_inq_varid(ncid, 'z_i', varid), 'get variable Id: z_i')
+        call nf90_err(nf90_put_var(ncid, varid, z_i)    , 'put variable: z_i')
+     end if
+     if (allocated(rgb2d)) then
+        do n = 1,nbilin2d
+           out2d(:,:) = reshape(rgb2d(:,n), (/nxr,nyr/))
+           out2d(:,nyr) = vfill
+           vname = trim(b2d(n)%var_name)
+           call nf90_err(nf90_inq_varid(ncid, vname, varid), 'get variable Id: '//vname)
+           call nf90_err(nf90_put_var(ncid,   varid, out2d), 'put variable: '//vname)
+        end do
+     end if
+     if (allocated(rgc2d)) then
+        do n = 1,nconsd2d
+           out2d(:,:) = reshape(rgc2d(:,n), (/nxr,nyr/))
+           out2d(:,nyr) = vfill
+           vname = trim(c2d(n)%var_name)
+           call nf90_err(nf90_inq_varid(ncid, vname, varid), 'get variable Id: '//vname)
+           call nf90_err(nf90_put_var(ncid,   varid, out2d), 'put variable: '//vname)
+        end do
+     end if
+
+     if (allocated(rgb3d)) then
+        do n = 1,nbilin3d
+           out3d(:,:,:) = reshape(rgb3d(:,:,n), (/nxr,nyr,nlevs/))
+           out3d(:,nyr,:) = vfill
+           vname = trim(b3d(n)%var_name)
+           call nf90_err(nf90_inq_varid(ncid, vname, varid), 'get variable Id: '//vname)
+           call nf90_err(nf90_put_var(ncid,   varid, out3d), 'put variable: '//vname)
+        end do
+     end if
+     call nf90_err(nf90_close(ncid), 'close: '// trim(fout))
+     write(logunit,'(a)')trim(fout)//' done'
+
   end if
 
-  if (allocated(b2d)) then
-     do n = 1,nbilin2d
-        vname = trim(b2d(n)%var_name)
-        vunit = trim(b2d(n)%units)
-        vlong = trim(b2d(n)%long_name)
-        vfill = b2d(n)%var_fillvalue
-        call nf90_err(nf90_def_var(ncid, vname, nf90_float, (/idimid,jdimid,timid/), varid), 'define variable: '// vname)
-        call nf90_err(nf90_put_att(ncid, varid,      'units', vunit), 'put variable attribute: units')
-        call nf90_err(nf90_put_att(ncid, varid,  'long_name', vlong), 'put variable attribute: long_name')
-        call nf90_err(nf90_put_att(ncid, varid, '_FillValue', vfill), 'put variable attribute: FillValue')
-     enddo
-  end if
-  if (allocated(c2d)) then
-     do n = 1,nconsd2d
-        vname = trim(c2d(n)%var_name)
-        vunit = trim(c2d(n)%units)
-        vlong = trim(c2d(n)%long_name)
-        vfill = c2d(n)%var_fillvalue
-        call nf90_err(nf90_def_var(ncid, vname, nf90_float, (/idimid,jdimid,timid/), varid), 'define variable: '// vname)
-        call nf90_err(nf90_put_att(ncid, varid,      'units', vunit), 'put variable attribute: units' )
-        call nf90_err(nf90_put_att(ncid, varid,  'long_name', vlong), 'put variable attribute: long_name' )
-        call nf90_err(nf90_put_att(ncid, varid, '_FillValue', vfill), 'put variable attribute: FillValue' )
-     enddo
-  end if
-  if (allocated(b3d)) then
-     do n = 1,nbilin3d
-        vname = trim(b3d(n)%var_name)
-        vunit = trim(b3d(n)%units)
-        vlong = trim(b3d(n)%long_name)
-        vfill = b3d(n)%var_fillvalue
-        call nf90_err(nf90_def_var(ncid, vname, nf90_float, (/idimid,jdimid,kdimid,timid/), varid), 'define variable: '// vname)
-        call nf90_err(nf90_put_att(ncid, varid,      'units', vunit), 'put variable attribute: units' )
-        call nf90_err(nf90_put_att(ncid, varid,  'long_name', vlong), 'put variable attribute: long_name' )
-        call nf90_err(nf90_put_att(ncid, varid, '_FillValue', vfill), 'put variable attribute: FillValue' )
-     enddo
-  end if
-  call nf90_err(nf90_enddef(ncid), 'enddef: '// trim(fout))
-
-  ! dimensions
-  call nf90_err(nf90_inq_varid(ncid, 'longitude', varid), 'get variable Id: longitude')
-  call nf90_err(nf90_put_var(ncid,   varid, dstlon(:,1)), 'put variable: longitude')
-  call nf90_err(nf90_inq_varid(ncid,  'latitude', varid), 'get variable Id: latitude')
-  call nf90_err(nf90_put_var(ncid,   varid, dstlat(1,:)), 'put variable: latitude')
-  ! time
-  call nf90_err(nf90_inq_varid(ncid, 'time', varid), 'get variable Id: time')
-  call nf90_err(nf90_put_var(ncid, varid, timestamp), 'put variable: time')
-  ! vertical
-  if (do_ocnpost) then
-     call nf90_err(nf90_inq_varid(ncid, 'z_l', varid), 'get variable Id: z_l')
-     call nf90_err(nf90_put_var(ncid, varid, z_l)    , 'put variable: z_l')
-     call nf90_err(nf90_inq_varid(ncid, 'z_i', varid), 'get variable Id: z_i')
-     call nf90_err(nf90_put_var(ncid, varid, z_i)    , 'put variable: z_i')
-  end if
-  if (allocated(rgb2d)) then
-     do n = 1,nbilin2d
-        out2d(:,:) = reshape(rgb2d(:,n), (/nxr,nyr/))
-        out2d(:,nyr) = vfill
-        vname = trim(b2d(n)%var_name)
-        call nf90_err(nf90_inq_varid(ncid, vname, varid), 'get variable Id: '//vname)
-        call nf90_err(nf90_put_var(ncid,   varid, out2d), 'put variable: '//vname)
-     end do
-  end if
-  if (allocated(rgc2d)) then
-     do n = 1,nconsd2d
-        out2d(:,:) = reshape(rgc2d(:,n), (/nxr,nyr/))
-        out2d(:,nyr) = vfill
-        vname = trim(c2d(n)%var_name)
-        call nf90_err(nf90_inq_varid(ncid, vname, varid), 'get variable Id: '//vname)
-        call nf90_err(nf90_put_var(ncid,   varid, out2d), 'put variable: '//vname)
-     end do
-  end if
-
-  if (allocated(rgb3d)) then
-     do n = 1,nbilin3d
-        out3d(:,:,:) = reshape(rgb3d(:,:,n), (/nxr,nyr,nlevs/))
-        out3d(:,nyr,:) = vfill
-        vname = trim(b3d(n)%var_name)
-        call nf90_err(nf90_inq_varid(ncid, vname, varid), 'get variable Id: '//vname)
-        call nf90_err(nf90_put_var(ncid,   varid, out3d), 'put variable: '//vname)
-     end do
-  end if
-  call nf90_err(nf90_close(ncid), 'close: '// trim(fout))
-  write(logunit,'(a)')trim(fout)//' done'
-
- end if
-
-!--------------------------------------------------------
-! Write the grib2 files
-!--------------------------------------------------------
+  !--------------------------------------------------------
+  ! Write the grib2 files
+  !--------------------------------------------------------
 
   if(write_grib2) then
-   if (allocated(rgb2d) .and. allocated(rgc2d)) then
-      allocate(grib2d(nxr*nyr,nconsd2d+nbilin2d), source=0.0)
-      allocate(g2d(1:nconsd2d+nbilin2d)) 
-      grib2d(:, 1:nbilin2d) = rgb2d
-      grib2d(:, nbilin2d+1:nconsd2d+nbilin2d) = rgc2d
-      g2d(1:nbilin2d) = b2d
-      g2d(nbilin2d+1:nconsd2d+nbilin2d) = c2d
-   else if (allocated(rgb2d)) then
-      allocate(grib2d(nxr*nyr,nconsd2d), source=0.0)
-      allocate(g2d(1:nconsd2d))
-      grib2d(:, 1:nconsd2d) = rgc2d
-      g2d(1:nconsd2d) = c2d
-   else if (allocated(rgc2d)) then
-      allocate(grib2d(nxr*nyr,nbilin2d), source=0.0)
-      allocate(g2d(1:nbilin2d))
-      grib2d(:, 1:nbilin2d) = rgb2d
-      g2d(1:nbilin2d) = b2d
-   end if
+     if (allocated(rgb2d) .and. allocated(rgc2d)) then
+        allocate(grib2d(nxr*nyr,nconsd2d+nbilin2d), source=0.0)
+        allocate(g2d(1:nconsd2d+nbilin2d))
+        grib2d(:, 1:nbilin2d) = rgb2d
+        grib2d(:, nbilin2d+1:nconsd2d+nbilin2d) = rgc2d
+        g2d(1:nbilin2d) = b2d
+        g2d(nbilin2d+1:nconsd2d+nbilin2d) = c2d
+     else if (allocated(rgb2d)) then
+        allocate(grib2d(nxr*nyr,nconsd2d), source=0.0)
+        allocate(g2d(1:nconsd2d))
+        grib2d(:, 1:nconsd2d) = rgc2d
+        g2d(1:nconsd2d) = c2d
+     else if (allocated(rgc2d)) then
+        allocate(grib2d(nxr*nyr,nbilin2d), source=0.0)
+        allocate(g2d(1:nbilin2d))
+        grib2d(:, 1:nbilin2d) = rgb2d
+        g2d(1:nbilin2d) = b2d
+     end if
 
-   gout = trim(ftype)//'.'//trim(fdst)//'.grib2'
-   if (debug) write(logunit, '(a)')'GRIB2 output file: '//trim(gout)
-   call write_grib2_2d(gout, g2d, (/nxr,nyr/), nconsd2d+nbilin2d, grib2d, vfill)
+     gout = trim(ftype)//'.'//trim(fdst)//'.grib2'
+     if (debug) write(logunit, '(a)')'GRIB2 output file: '//trim(gout)
+     call write_grib2_2d(gout, g2d, (/nxr,nyr/), nconsd2d+nbilin2d, grib2d, vfill)
 
-   if (allocated(rgb3d)) then
-      call write_grib2_3d(gout, b3d, (/nxr,nyr,nlevs/), nbilin3d, rgb3d, vfill)
-   end if
+     if (allocated(rgb3d)) then
+        call write_grib2_3d(gout, b3d, (/nxr,nyr,nlevs/), nbilin3d, rgb3d, vfill)
+     end if
   end if
 
- stop
+  stop
 
 end program ocnicepost
