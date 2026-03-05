@@ -90,6 +90,12 @@ contains
        end if
     end do
 
+    do n = 1, nbilin2d
+       if (b2d(n)%isvector)print *,n,trim(b2d(n)%var_name)//'  '//trim(b2d(n)%var_pair)
+    end do
+    do n = 1, nconsd2d
+       if (c2d(n)%isvector)print *,n,trim(c2d(n)%var_name)//'  '//trim(c2d(n)%var_pair)
+    end do
     ! --------------------------------------------------------
     ! create arrays for remapped packed fields
     ! --------------------------------------------------------

@@ -49,18 +49,19 @@ contains
   !----------------------------------------------------------
   ! pack 2D fields into arrays by mapping type
   !----------------------------------------------------------
-  subroutine packarrays2d(filesrc, wgtsdir, cosrot, sinrot, vars, dims, nflds, fields)
+  subroutine packarrays2d(filesrc, wgtsdir, cosrot, sinrot, vars, dims, nflds, npairs, fields)
 
     character(len=*), intent(in)  :: filesrc,wgtsdir
     real,             intent(in)  :: cosrot(:),sinrot(:)
     type(vardefs),    intent(in)  :: vars(:)
     integer,          intent(in)  :: dims(:)
     integer,          intent(in)  :: nflds
+    integer,          intent(in)  :: npairs
     real,             intent(out) :: fields(:,:)
 
     ! local variables
     integer :: n, nn
-    real, allocatable, dimension(:,:) :: vecpair
+    real, allocatable, dimension(:,:,:) :: vecpair
     character(len=20) :: subname = 'packarrays2d'
 
     fields=0.0
@@ -68,20 +69,39 @@ contains
 
     ! create packed array
     nn = 0
+#ifdef test
     do n = 1,nflds
-       if (len_trim(vars(n)%var_pair) == 0) then
+       if (vars(n)%isvector) then
+
+          !if (trim(vars(n)%var_grid) == 'Cu' .or. trim(vars(n)%var_grid) == 'Bu_x') then
+          if (.not.allocated(vecpair))allocate(vecpair(dims(1)*dims(2),2), source=0.0)
+             call getvecpair(trim(filesrc), trim(wgtsdir), cosrot, sinrot,   &
+                  trim(vars(n)%var_name), trim(vars(n)%var_grid(1:2)), &
+                  trim(vars(n)%var_pair), trim(vars(n)%var_pair_grid(1:2)),  &
+                  dims=(/dims(1),dims(2)/), vecpair=vecpair)
+          end if
+       end if
+    end do
+#endif
+#ifdef test
+    allocate(vecpair((dims(1)*dims(2),2,npairs), source = 0.0)
+    do np = 1,pairs
+       !if (trim(vars(n)%var_grid) == 'Cu' .or. trim(vars(n)%var_grid) == 'Bu_x' .or. trim(vars(n)%var_grid) == 'Ct') then
+          call getvecpair(trim(filesrc), trim(wgtsdir), cosrot, sinrot,   &
+               trim(vars(n)%var_name), trim(vars(n)%var_grid(1:2)), &
+               trim(vars(n)%var_pair), trim(vars(n)%var_pair_grid(1:2)),  &
+               dims=(/dims(1),dims(2)/), vecpair=vecpair(:,:,np)
+       end if
+    end do
+
+    do n = 1,nflds
+       if (.not. vars(n)%isvector) then
           nn = nn + 1
           call getfield(trim(filesrc), trim(vars(n)%var_name), dims=(/dims(1),dims(2)/), &
                field=fields(:,nn))
        else ! fill with vector pairs
-          nn = nn + 1
-          if (trim(vars(n)%var_grid) == 'Cu' .or. trim(vars(n)%var_grid) == 'Bu_x') then
-            if(allocated(vecpair)) deallocate(vecpair)
-            allocate(vecpair(dims(1)*dims(2),2)); vecpair = 0.0
-            call getvecpair(trim(filesrc), trim(wgtsdir), cosrot, sinrot,   &
-               trim(vars(n)%var_name), trim(vars(n)%var_grid(1:2)), &
-               trim(vars(n)%var_pair), trim(vars(n)%var_pair_grid(1:2)),  &
-               dims=(/dims(1),dims(2)/), vecpair=vecpair)
+          do np = 1,npairs
+             nn = nn+1
             if (trim(vars(n)%var_grid) == 'Cu')fields(:,nn) = vecpair(:,1)    ! ocn vectors
             if (trim(vars(n)%var_grid) == 'Bu_x')fields(:,nn) = vecpair(:,1)  ! ice vectors
           else  ! 'Cv' and 'Bu_y'
@@ -90,20 +110,21 @@ contains
           endif
        end if
     end do
-
+#endif
     if (debug)write(logunit,'(a)')'exit '//trim(subname)
   end subroutine packarrays2d
 
   !----------------------------------------------------------
   ! pack 3D fields into arrays by mapping type
   !----------------------------------------------------------
-  subroutine packarrays3d(filesrc, wgtsdir, cosrot, sinrot, vars, dims, nflds, fields)
+  subroutine packarrays3d(filesrc, wgtsdir, cosrot, sinrot, vars, dims, nflds, npairs, fields)
 
     character(len=*), intent(in)  :: filesrc,wgtsdir
     real,             intent(in)  :: cosrot(:),sinrot(:)
     type(vardefs),    intent(in)  :: vars(:)
     integer,          intent(in)  :: dims(:)
     integer,          intent(in)  :: nflds
+    integer,          intent(in)  :: npairs
     real,             intent(out) :: fields(:,:,:)
 
     ! local variables

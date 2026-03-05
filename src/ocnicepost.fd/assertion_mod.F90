@@ -8,6 +8,7 @@ module assertion_mod
   interface assert_equal
      module procedure assert_int_scalar
      module procedure assert_real_scalar
+     module procedure assert_real_1d
      module procedure assert_double_scalar
      module procedure assert_double_1d
   end interface assert_equal
@@ -40,6 +41,27 @@ contains
        write(returnmsg, '(2(a,g15.8))') "Fail: " // trim(msg) // " | Expected ", expected, ", got ", actual
     end if
   end subroutine assert_real_scalar
+
+  subroutine assert_real_1d(actual, expected, tol, msg, rc, returnmsg)
+    real(kind=4),      intent(in)  :: actual(:), expected(:), tol
+    character(len=*),  intent(in)  :: msg
+    logical,           intent(out) :: rc
+    character(len=*),  intent(out) :: returnmsg
+    integer :: n
+
+    rc = all(abs(actual - expected) <= tol)
+    if (rc) then
+       returnmsg = "Pass: " // trim(msg)
+    else
+       returnmsg = "Fail: " // trim(msg) // " | At least one element mismatched."
+    end if
+    if (.not. rc) then
+       do n = 1,2
+          print *,trim(msg),actual(n),expected(n),abs(actual(n)-expected(n))
+       end do
+    end if
+
+  end subroutine assert_real_1d
 
   subroutine assert_double_scalar(actual, expected, tol, msg, rc, returnmsg)
     real(kind=8),      intent(in)  :: actual, expected, tol

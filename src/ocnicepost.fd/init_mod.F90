@@ -64,6 +64,10 @@ module init_mod
   logical :: debug            !< If true, print debug messages and intermediate files
   logical :: do_ocnpost       !< If true, the source file is ocean, otherwise ice
 
+  integer :: nvpairb2d         !< The number of 2d vector pairs, bilinear
+  integer :: nvpairc2d         !< The number of 2d vector pairs, conservative
+  integer :: nvpairb3d         !< The number of 2d vector pairs, bilinear
+
 contains
 
   subroutine readnml
@@ -156,6 +160,14 @@ contains
        stop 4
     end if
 
+    ! initialize
+    outvars%var_name = ''
+    outvars%var_dimen = 0
+    outvars%var_grid = ''
+    outvars%var_remapmethod = ''
+    outvars%var_pair = ''
+    outvars%var_pair_grid = ''
+
     read(iounit,*)chead
     nn=0
     do n = 1,maxvars
@@ -182,12 +194,72 @@ contains
           outvars(nn)%var_g8 = i17
        end if
     end do
+    close(iounit)
+    nvalid = nn
     outvars%isvector = .false.
     where (len_trim(outvars%var_pair) > 0) outvars%isvector = .true.
-    close(iounit)
+    do n = 1,maxvars-1
+       if (outvars(n)%isvector)then
+          print *,'XX '//trim(outvars(n)%var_name)//'  '//trim(outvars(n+1)%var_name),outvars(n+1)%isvector
 
-    nvalid = nn
+          !if (trim(outvars(n)%var_pair) .ne. trim(outvars(n+1)%var_name)) then
+          !   write(0,'(a,i0)') 'FATAL ERROR: vector pairs must occur sequentially in list'
+          !   stop 6
+          !end if
+       end if
+    end do
 
+    do n = 1,maxvars,2
+       if (outvars(n)%isvector) then
+       !   print *,'XX '//trim(outvars(n)%var_name)//'  '//trim(outvars(n+1)%var_name),outvars(n+1)%isvector
+       end if
+       !if (outvars(n)%isvector) .and. .not. outvars(n+1)%isvector) then
+       !   write(0,'(a,i0)') 'FATAL ERROR: vector pairs must occur sequentially in list'
+       !   stop 6
+       !end if
+    end do
+
+    nvpairb2d = countvpairs(outvars, 'bilinear', 2)
+    nvpairc2d = countvpairs(outvars, 'conserve', 2)
+    nvpairb3d = countvpairs(outvars, 'bilinear', 3)
+
+    !seqpairs = checkvpairs(outvars)
+
+    !print *,'XX ',nvpairb2d, nvpairc2d, nvpairb3d
   end subroutine readcsv
 
+  integer function countvpairs(vars, maptype, size) result(count)
+
+    type(vardefs),    intent(in) :: vars(:)
+    character(len=*), intent(in) :: maptype
+    integer,          intent(in) :: size
+
+    integer :: n
+
+    count = 0
+    do n = 1,maxvars
+       if (outvars(n)%isvector) then
+          if (vars(n)%var_dimen == size .and. trim(vars(n)%var_remapmethod)  == trim(maptype)) count = count+1
+       end if
+    end do
+
+    if (mod(count,2) /= 0) then
+       write(0,'(a,i0)') 'FATAL ERROR: non-even number of vector pairs map = '//trim(maptype)//' dimension = ',size
+       stop 5
+    else
+       count = count / 2
+    end if
+  end function countvpairs
+
+  ! logical function checkvpairs(vars) result(seqpairs)
+
+  !   type(vardefs),    intent(in) :: vars(:)
+
+  !   integer :: i,n
+
+  !   do n = 1,maxvars,2
+  !      if (vars(n)%isvector .and. .not.vars(n+1)%isvector) then
+  !         write(0,'(a,i0)') 'FATAL ERROR: vector pairs must occur sequentially in list'
+  !         stop 6
+  !end function checkvpairs
 end module init_mod

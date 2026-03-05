@@ -27,12 +27,14 @@ program ocnicepost
   use init_mod   , only : nxt, nyt, nlevs, nxr, nyr, outvars, readnml, readcsv
   use init_mod   , only : wgtsdir, ftype, fsrc, fdst, input_file, cosvar, sinvar, angvar
   use init_mod   , only : do_ocnpost, debug, logunit, write_grib2, write_netcdf
+  use init_mod   , only : nvpairb2d, nvpairc2d, nvpairb3d
   use init_mod   , only : vardefs
   use arrays_mod , only : b2d, c2d, b3d, rgb2d, rgc2d, rgb3d, dstlon, dstlat, setup_packing
   use arrays_mod , only : nbilin2d, nbilin3d, nconsd2d, bilin2d, bilin3d, consd2d
   use masking_mod, only : mask2d, mask3d, rgmask2d, rgmask3d, remap_masks
   use utils_mod  , only : getfield, packarrays, remap, dumpnc, nf90_err, write_grib2_2d, write_grib2_3d
   use utils_mod  , only : getfieldrange
+  use assertion_mod
 
   implicit none
 
@@ -69,6 +71,9 @@ program ocnicepost
   integer :: idimid,jdimid,kdimid,edimid,timid
   integer :: idx1,idx2,idx3
 
+  real :: vrange(2)
+  character(len=100) :: msg, msg_out
+  logical :: status
   ! --------------------------------------------------------
   ! read the nml file and a file containing the list of
   ! variables to be remapped
@@ -134,7 +139,7 @@ program ocnicepost
   do n = 1,nvalid
      if (outvars(n)%var_dimen == 2) then
         call getfieldrange(trim(input_file), trim(outvars(n)%var_name), (/nxt,nyt/), outvars(n)%ranges%rng2d(:))
-        print *,trim(outvars(n)%var_name)//'  ',outvars(n)%ranges%rng2d(:),'  ',outvars(n)%isvector
+        write(*,*)trim(outvars(n)%var_name)//'  ',outvars(n)%ranges%rng2d(:),'  ',outvars(n)%isvector,' ',outvars(n)%var_grid,'  ',outvars(n)%var_pair_grid
      else
         do k = 1,nlevs
            call getfieldrange(trim(input_file), trim(outvars(n)%var_name), (/nxt,nyt/), outvars(n)%ranges%rng3d(:,k), klev=k)
@@ -163,13 +168,15 @@ program ocnicepost
   ! --------------------------------------------------------
 
   call setup_packing(nvalid,outvars)
-
+  do n = 1,nbilin2d
+     write(42,*)trim(b2d(n)%var_name)//'  ',b2d(n)%ranges%rng2d(:),'  ',b2d(n)%isvector,' ',b2d(n)%var_grid,'  ',b2d(n)%var_pair_grid
+  end do
   ! 2D bilin
   if (allocated(bilin2d)) then
 
      wgtsfile = trim(wgtsdir)//'tripole.'//trim(fsrc)//'.Ct.to.rect.'//trim(fdst)//'.bilinear.nc'
      call packarrays(trim(input_file), trim(wgtsdir), cosrot, sinrot, b2d, dims=(/nxt,nyt/),            &
-          nflds=nbilin2d, fields=bilin2d)
+          nflds=nbilin2d, npairs=nvpairb2d, fields=bilin2d)
      call remap(trim(wgtsfile), dim2=nbilin2d, src_field=bilin2d, dst_field=rgb2d)
 
      write(logunit,'(a)')'remap 2D fields bilinear with '//trim(wgtsfile)
@@ -193,7 +200,7 @@ program ocnicepost
 
      wgtsfile = trim(wgtsdir)//'tripole.'//trim(fsrc)//'.Ct.to.rect.'//trim(fdst)//'.conserve.nc'
      call packarrays(trim(input_file), trim(wgtsdir), cosrot, sinrot, c2d, dims=(/nxt,nyt/),            &
-          nflds=nconsd2d, fields=consd2d)
+          nflds=nconsd2d, npairs=nvpairc2d, fields=consd2d)
      call remap(trim(wgtsfile), dim2=nconsd2d, src_field=consd2d, dst_field=rgc2d)
 
      write(logunit,'(a)')'remap 2D fields conserv with '//trim(wgtsfile)
@@ -216,7 +223,7 @@ program ocnicepost
 
      wgtsfile = trim(wgtsdir)//'tripole.'//trim(fsrc)//'.Ct.to.rect.'//trim(fdst)//'.bilinear.nc'
      call packarrays(trim(input_file), trim(wgtsdir), cosrot, sinrot, b3d, dims=(/nxt,nyt,nlevs/),      &
-          nflds=nbilin3d, fields=bilin3d)
+          nflds=nbilin3d, npairs=nvpairb3d, fields=bilin3d)
      call remap(trim(wgtsfile), nk=nlevs, nflds=nbilin3d, src_field=bilin3d, dst_field=rgb3d)
 
      write(logunit,'(a)')'remap 3D fields bilinear with '//trim(wgtsfile)
@@ -246,6 +253,13 @@ program ocnicepost
      if (allocated(rgmask2d))then
         where(rgmask2d(:) .eq. vfill)rgb2d(:,n) = vfill
      end if
+  end do
+  n=1
+  do n = 1,nbilin2d
+     vrange(1) = minval(rgb2d(:,n), mask = rgb2d(:,n) .ne. vfill)
+     vrange(2) = maxval(rgb2d(:,n), mask = rgb2d(:,n) .ne. vfill)
+     !call assert_equal(vrange,b2d(n)%ranges%rng2d,5.0,trim(b2d(n)%var_name),status,msg_out)
+     !if (.not. status)print *,status,trim(msg_out)
   end do
   do n = 1,nconsd2d
      if (allocated(rgmask3d)) then
