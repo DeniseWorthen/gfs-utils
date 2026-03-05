@@ -32,6 +32,7 @@ program ocnicepost
   use arrays_mod , only : nbilin2d, nbilin3d, nconsd2d, bilin2d, bilin3d, consd2d
   use masking_mod, only : mask2d, mask3d, rgmask2d, rgmask3d, remap_masks
   use utils_mod  , only : getfield, packarrays, remap, dumpnc, nf90_err, write_grib2_2d, write_grib2_3d
+  use utils_mod  , only : getfieldrange
 
   implicit none
 
@@ -49,6 +50,10 @@ program ocnicepost
   real, allocatable, dimension(:,:)   :: out2d !< 2D destination grid output array
   real, allocatable, dimension(:,:,:) :: out3d !< 3D destination grid output array
 
+  ! work arrays for ranges
+  !real, allocatable, dimension(:)   :: tmp1d  !< 1D source grid
+  !real, allocatable, dimension(:,:) :: tmp2d  !< 2D source grid
+
   ! arrays for output grib2
   real, allocatable, dimension(:,:)   :: grib2d    !< 2D destination grib2 concat array
   type(vardefs), allocatable, dimension(:) :: g2d  !< concatinated variable metadata for 2D source fields remap
@@ -60,7 +65,7 @@ program ocnicepost
 
   real    :: vfill
   integer :: nvalid
-  integer :: n,rc,ncid,varid
+  integer :: n,k,rc,ncid,varid
   integer :: idimid,jdimid,kdimid,edimid,timid
   integer :: idx1,idx2,idx3
 
@@ -81,7 +86,7 @@ program ocnicepost
   if (do_ocnpost) then
      call nf90_err(nf90_inq_dimid(ncid, 'z_l', varid), 'get dimension Id: z_l'//trim(input_file))
      call nf90_err(nf90_inquire_dimension(ncid, varid, len=nlevs), 'get dimension Id: z_l'//trim(input_file))
-  endif
+  end if
   do n = 1,nvalid
      if (debug) then
         write(logunit,'(a12,i4,a10,3(a6))')trim(outvars(n)%var_name)//', ',outvars(n)%var_dimen, &
@@ -122,6 +127,22 @@ program ocnicepost
      sinrot = -sin(anglet)
   end if
 
+  do n = 1,nvalid
+     allocate(outvars(n)%ranges%rng2d(2), source = 0.0)
+     if (do_ocnpost) allocate(outvars(n)%ranges%rng3d(2,nlevs), source = 0.0)
+  end do
+  do n = 1,nvalid
+     if (outvars(n)%var_dimen == 2) then
+        call getfieldrange(trim(input_file), trim(outvars(n)%var_name), (/nxt,nyt/), outvars(n)%ranges%rng2d(:))
+        print *,trim(outvars(n)%var_name)//'  ',outvars(n)%ranges%rng2d(:),'  ',outvars(n)%isvector
+     else
+        do k = 1,nlevs
+           call getfieldrange(trim(input_file), trim(outvars(n)%var_name), (/nxt,nyt/), outvars(n)%ranges%rng3d(:,k), klev=k)
+        end do
+        print *,k,outvars(n)%ranges%rng3d(:,k)
+     end if
+  end do
+
   ! --------------------------------------------------------
   ! create interpolation masks
   ! --------------------------------------------------------
@@ -135,8 +156,6 @@ program ocnicepost
   end if
 
   call remap_masks(vfill)
-
-
 
   ! --------------------------------------------------------
   ! create packed arrays for mapping and remap packed arrays
@@ -153,14 +172,14 @@ program ocnicepost
           nflds=nbilin2d, fields=bilin2d)
      call remap(trim(wgtsfile), dim2=nbilin2d, src_field=bilin2d, dst_field=rgb2d)
 
+     write(logunit,'(a)')'remap 2D fields bilinear with '//trim(wgtsfile)
+     write(logunit,'(a)')'packed min/max values, mapped min/max values'
+     do n = 1,nbilin2d
+        write(logunit,'(i4,a10,3(a2,a6),4g14.4)')n,trim(b2d(n)%var_name),'  ',                       &
+             trim(b2d(n)%var_grid),'  ',trim(b2d(n)%var_pair),'  ', trim(b2d(n)%var_pair_grid),      &
+             minval(bilin2d(:,n)), maxval(bilin2d(:,n)),minval(rgb2d(:,n)), maxval(rgb2d(:,n))
+     end do
      if (debug) then
-        write(logunit,'(a)')'remap 2D fields bilinear with '//trim(wgtsfile)
-        write(logunit,'(a)')'packed min/max values, mapped min/max values'
-        do n = 1,nbilin2d
-           write(logunit,'(i4,a10,3(a2,a6),4g14.4)')n,trim(b2d(n)%var_name),'  ',                       &
-                trim(b2d(n)%var_grid),'  ',trim(b2d(n)%var_pair),'  ', trim(b2d(n)%var_pair_grid),      &
-                minval(bilin2d(:,n)), maxval(bilin2d(:,n)),minval(rgb2d(:,n)), maxval(rgb2d(:,n))
-        end do
         call dumpnc(trim(ftype)//'.'//trim(fsrc)//'.bilin2d.nc', 'bilin2d', dims=(/nxt,nyt/),           &
              nflds=nbilin2d, field=bilin2d)
         call dumpnc(trim(ftype)//'.'//trim(fdst)//'.rgbilin2d.nc', 'rgbilin2d', dims=(/nxr,nyr/),       &
@@ -177,14 +196,14 @@ program ocnicepost
           nflds=nconsd2d, fields=consd2d)
      call remap(trim(wgtsfile), dim2=nconsd2d, src_field=consd2d, dst_field=rgc2d)
 
+     write(logunit,'(a)')'remap 2D fields conserv with '//trim(wgtsfile)
+     write(logunit,'(a)')'packed min/max values, mapped min/max values'
+     do n = 1,nconsd2d
+        write(logunit,'(i4,a10,3(a2,a6),4g14.4)')n,trim(c2d(n)%var_name),'  ',                       &
+             trim(c2d(n)%var_grid),'  ',trim(c2d(n)%var_pair),'  ', trim(c2d(n)%var_pair_grid),      &
+             minval(consd2d(:,n)), maxval(consd2d(:,n)), minval(rgc2d(:,n)), maxval(rgc2d(:,n))
+     end do
      if (debug) then
-        write(logunit,'(a)')'remap 2D fields conserv with '//trim(wgtsfile)
-        write(logunit,'(a)')'packed min/max values, mapped min/max values'
-        do n = 1,nconsd2d
-           write(logunit,'(i4,a10,3(a2,a6),4g14.4)')n,trim(c2d(n)%var_name),'  ',                       &
-                trim(c2d(n)%var_grid),'  ',trim(c2d(n)%var_pair),'  ', trim(c2d(n)%var_pair_grid),      &
-                minval(consd2d(:,n)), maxval(consd2d(:,n)), minval(rgc2d(:,n)), maxval(rgc2d(:,n))
-        end do
         call dumpnc(trim(ftype)//'.'//trim(fsrc)//'.consd2d.nc', 'consd2d', dims=(/nxt,nyt/),           &
              nflds=nconsd2d, field=consd2d)
         call dumpnc(trim(ftype)//'.'//trim(fdst)//'.rgconsd2d.nc', 'rgconsd2d', dims=(/nxr,nyr/),       &
@@ -200,14 +219,15 @@ program ocnicepost
           nflds=nbilin3d, fields=bilin3d)
      call remap(trim(wgtsfile), nk=nlevs, nflds=nbilin3d, src_field=bilin3d, dst_field=rgb3d)
 
+     write(logunit,'(a)')'remap 3D fields bilinear with '//trim(wgtsfile)
+     write(logunit,'(a)')'packed min/max values,mapped min/max values'
+     do n = 1,nbilin3d
+        write(logunit,'(i4,a10,3(a2,a6),4g14.4)')n,trim(b3d(n)%var_name),'  ',                       &
+             trim(b3d(n)%var_grid),'  ',trim(b3d(n)%var_pair),'  ', trim(b3d(n)%var_pair_grid),      &
+             minval(bilin3d(:,:,n)), maxval(bilin3d(:,:,n)),minval(rgb3d(:,:,n)), maxval(rgb3d(:,:,n))
+     end do
+
      if (debug) then
-        write(logunit,'(a)')'remap 3D fields bilinear with '//trim(wgtsfile)
-        write(logunit,'(a)')'packed min/max values,mapped min/max values'
-        do n = 1,nbilin3d
-           write(logunit,'(i4,a10,3(a2,a6),4g14.4)')n,trim(b3d(n)%var_name),'  ',                       &
-                trim(b3d(n)%var_grid),'  ',trim(b3d(n)%var_pair),'  ', trim(b3d(n)%var_pair_grid),      &
-                minval(bilin3d(:,:,n)), maxval(bilin3d(:,:,n)),minval(rgb3d(:,:,n)), maxval(rgb3d(:,:,n))
-        end do
         call dumpnc(trim(ftype)//'.'//trim(fsrc)//'.bilin3d.nc', 'bilin3d', dims=(/nxt,nyt,nlevs/),     &
              nk=nlevs, nflds=nbilin3d, field=bilin3d)
         call dumpnc(trim(ftype)//'.'//trim(fdst)//'.rgbilin3d.nc', 'rgbilin3d', dims=(/nxr,nyr,nlevs/), &

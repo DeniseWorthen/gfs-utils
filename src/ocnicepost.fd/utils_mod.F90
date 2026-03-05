@@ -36,6 +36,7 @@ module utils_mod
   end interface dumpnc
 
   public getfield
+  public getfieldrange
   public packarrays
   public remap
   public dumpnc
@@ -296,6 +297,48 @@ contains
 
     if (debug) write(logunit,'(a)')'exit '//trim(subname)//' variable '//vname
   end subroutine getfield3d
+
+  !----------------------------------------------------------
+  ! get a field range
+  !----------------------------------------------------------
+  ! do n = 1,nvalid
+  !    if (outvars(outvars(n)%var_dimen) == 2) then
+  !       call getfield(trim(input_file), trim(outvars(n)%var_name), dims=(/nxt,nyt/), ranges(n)%rng2d(:))
+  !    else
+  !       do k = 1,nlevs
+  !          call getfield(trim(input_file), trim(outvars(n)%var_name), dims=(/nxt,nyt/), k, ranges(n)%rng3d(:,k))
+  !       end do
+  !    end if
+  ! end do
+  !subroutine getfield2d(fname, vname, dims, field, wgts)
+
+  subroutine getfieldrange(fname,vname,dims,vrange,klev)
+
+    character(len=*),           intent(in)  :: fname, vname
+    integer,                    intent(in)  :: dims(:)
+    real,                       intent(out) :: vrange(:)
+    integer, optional,           intent(in) :: klev
+
+    ! local variable
+    integer           :: ncid, varid, rc
+    real              :: fval
+    real, allocatable :: a2d(:,:)
+
+    allocate(a2d(dims(1),dims(2)), source = 0.0)
+
+    call nf90_err(nf90_open(fname, nf90_nowrite, ncid), 'nf90_open: '//fname)
+    call nf90_err(nf90_inq_varid(ncid, vname, varid), 'get variable ID: '//vname)
+    call nf90_err(nf90_get_att(ncid, varid, '_FillValue', fval), 'get attribute FillValue: '//vname)
+    if (present(klev)) then
+       call nf90_err(nf90_get_var(ncid, varid, a2d, count = (/dims(1),dims(2),klev/)), 'get variable: '//vname)
+    else
+       call nf90_err(nf90_get_var(ncid, varid, a2d), 'get variable: '//vname)
+    end if
+    call nf90_err(nf90_close(ncid), 'close: '//fname)
+
+    vrange(1) = minval(a2d, mask = a2d .ne. fval)
+    vrange(2) = maxval(a2d, mask = a2d .ne. fval)
+  end subroutine getfieldrange
 
   !----------------------------------------------------------
   ! remap a 1-D vector array

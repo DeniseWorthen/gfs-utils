@@ -6,28 +6,35 @@ module init_mod
 
   real, parameter :: maxvars = 70              !< The maximum number of fields expected in a source file
 
+  type :: valid_ranges
+     real, allocatable :: rng2d(:)
+     real, allocatable :: rng3d(:,:)
+  end type valid_ranges
+
   type :: vardefs
-       character(len= 20)   :: var_name          !< A variable's variable name
-       character(len= 20)   :: var_remapmethod   !< A variable's mapping method
-       character(len=120)   :: long_name         !< A variable's long name
-       character(len= 20)   :: units             !< A variable's unit
-       integer              :: var_dimen         !< A variable's dimensionality
-       character(len=  4)   :: var_grid          !< A variable's input grid location; all output locations are on cell centers
-       character(len= 20)   :: var_pair          !< A variable's pair
-       character(len=  4)   :: var_pair_grid     !< A pair variable grid
-       real                 :: var_fillvalue     !< A variable's fillvalue
-       character(len= 20)   :: name_gb2          !< A variable's grib2 variable name
-       character(len=120)   :: discription_gb2   !< A variable's discription
-       character(len= 20)   :: unit_gb2          !< A variable's unit       
-  !!!may need to add a fillvalue for grib2 file
-       integer              ::var_g1             !< Variables' grib2 coefficients g1-Dissipline
-       integer              ::var_g2             !< Variables' grib2 coefficients g2-Master Tables Version Number
-       integer              ::var_g3             !< Variables' grib2 coefficients g3-Section 1 originating center, used for local tables
-       integer              ::var_g4             !< Variables' grib2 coefficients g4-Section 1 Local Tables Version Number
-       integer              ::var_g5             !< Variables' grib2 coefficients g5-Section 4 Template 4.0 Parameter category
-       integer              ::var_g6             !< Variables' grib2 coefficients g6-Section 4 Template 4.0 Parameter number
-       integer              ::var_g7             !< Variables' grib2 coefficients g7-Level ID
-       integer              ::var_g8             !< Variables' grib2 coefficients g8-
+     type(valid_ranges)   :: ranges            !< Nested valid_ranges for each vardefs
+     character(len= 20)   :: var_name          !< A variable's variable name
+     character(len= 20)   :: var_remapmethod   !< A variable's mapping method
+     character(len=120)   :: long_name         !< A variable's long name
+     character(len= 20)   :: units             !< A variable's unit
+     integer              :: var_dimen         !< A variable's dimensionality
+     character(len=  4)   :: var_grid          !< A variable's input grid location; all output locations are on cell centers
+     character(len= 20)   :: var_pair          !< A variable's pair
+     character(len=  4)   :: var_pair_grid     !< A pair variable grid
+     logical              :: isvector          !< A logical indicating a vector field
+     real                 :: var_fillvalue     !< A variable's fillvalue
+     character(len= 20)   :: name_gb2          !< A variable's grib2 variable name
+     character(len=120)   :: discription_gb2   !< A variable's discription
+     character(len= 20)   :: unit_gb2          !< A variable's unit
+!!!may need to add a fillvalue for grib2 file
+     integer              ::var_g1             !< Variables' grib2 coefficients g1-Dissipline
+     integer              ::var_g2             !< Variables' grib2 coefficients g2-Master Tables Version Number
+     integer              ::var_g3             !< Variables' grib2 coefficients g3-Section 1 originating center, used for local tables
+     integer              ::var_g4             !< Variables' grib2 coefficients g4-Section 1 Local Tables Version Number
+     integer              ::var_g5             !< Variables' grib2 coefficients g5-Section 4 Template 4.0 Parameter category
+     integer              ::var_g6             !< Variables' grib2 coefficients g6-Section 4 Template 4.0 Parameter number
+     integer              ::var_g7             !< Variables' grib2 coefficients g7-Level ID
+     integer              ::var_g8             !< Variables' grib2 coefficients g8-
   end type vardefs
 
   type(vardefs) :: outvars(maxvars)            !< An empty structure filled by reading a csv file describing the fields
@@ -175,7 +182,10 @@ contains
           outvars(nn)%var_g8 = i17
        end if
     end do
+    outvars%isvector = .false.
+    where (len_trim(outvars%var_pair) > 0) outvars%isvector = .true.
     close(iounit)
+
     nvalid = nn
 
   end subroutine readcsv

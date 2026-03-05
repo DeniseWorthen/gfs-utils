@@ -4,7 +4,7 @@ list(APPEND fortran_src
   utils_mod.F90
   masking_mod.F90
   ocnicepost.F90
-
+  assertion_mod.F90
 )
 
 set(exe_name ocnicepost.x)
