@@ -163,12 +163,17 @@ contains
 
     if (debug)write(logunit,'(a)')'enter '//trim(subname)
 
-    wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid1//'.to.Ct.bilinear.nc'
-    call getfield(fname, vname1, dims=dims, field=vecpair(:,1), wgts=trim(wgtsfile))
-    if (debug)write(logunit,'(a)')'wgtsfile for 2d vector '//trim(vname1)//'   '//trim(wgtsfile)
-    wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid2//'.to.Ct.bilinear.nc'
-    call getfield(fname, vname2, dims=dims, field=vecpair(:,2), wgts=trim(wgtsfile))
-    if (debug)write(logunit,'(a)')'wgtsfile for 2d vector '//trim(vname2)//'   '//trim(wgtsfile)
+    if (trim(vgrid1) == 'Ct' .and. trim(vgrid2) == 'Ct') then
+       call getfield(fname, vname1, dims=dims, field=vecpair(:,1))
+       call getfield(fname, vname2, dims=dims, field=vecpair(:,2))
+    else
+       wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid1//'.to.Ct.bilinear.nc'
+       call getfield(fname, vname1, dims=dims, field=vecpair(:,1), wgts=trim(wgtsfile))
+       if (debug)write(logunit,'(a)')'wgtsfile for 2d vector '//trim(vname1)//'   '//trim(wgtsfile)
+       wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid2//'.to.Ct.bilinear.nc'
+       call getfield(fname, vname2, dims=dims, field=vecpair(:,2), wgts=trim(wgtsfile))
+       if (debug)write(logunit,'(a)')'wgtsfile for 2d vector '//trim(vname2)//'   '//trim(wgtsfile)
+    end if
 
     urot = 0.0; vrot = 0.0
     do ii = 1,dims(1)*dims(2)
@@ -202,10 +207,15 @@ contains
 
     if (debug)write(logunit,'(a)')'enter '//trim(subname)
 
-    wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid1//'.to.Ct.bilinear.nc'
-    call getfield(fname, vname1, dims=dims, field=vecpair(:,:,1), wgts=trim(wgtsfile))
-    wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid2//'.to.Ct.bilinear.nc'
-    call getfield(fname, vname2, dims=dims, field=vecpair(:,:,2), wgts=trim(wgtsfile))
+    if (trim(vgrid1) == 'Ct' .and. trim(vgrid2) == 'Ct') then
+       call getfield(fname, vname1, dims=dims, field=vecpair(:,:,1))
+       call getfield(fname, vname2, dims=dims, field=vecpair(:,:,2))
+    else
+       wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid1//'.to.Ct.bilinear.nc'
+       call getfield(fname, vname1, dims=dims, field=vecpair(:,:,1), wgts=trim(wgtsfile))
+       wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid2//'.to.Ct.bilinear.nc'
+       call getfield(fname, vname2, dims=dims, field=vecpair(:,:,2), wgts=trim(wgtsfile))
+    end if
 
     do k = 1,dims(3)
        urot = 0.0; vrot = 0.0
