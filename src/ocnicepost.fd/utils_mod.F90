@@ -168,12 +168,17 @@ contains
 
     if (debug)write(logunit,'(a)')'enter '//trim(subname)
 
-    wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid1//'.to.Ct.bilinear.nc'
-    call getfield(fname, vname1, dims=dims, field=vecpair(:,1), wgts=trim(wgtsfile))
-    if (debug)write(logunit,'(a)')'wgtsfile for 2d vector '//trim(vname1)//'   '//trim(wgtsfile)
-    wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid2//'.to.Ct.bilinear.nc'
-    call getfield(fname, vname2, dims=dims, field=vecpair(:,2), wgts=trim(wgtsfile))
-    if (debug)write(logunit,'(a)')'wgtsfile for 2d vector '//trim(vname2)//'   '//trim(wgtsfile)
+    if (trim(vgrid1) == 'Ct' .and. trim(vgrid2) == 'Ct') then
+       call getfield(fname, vname1, dims=dims, field=vecpair(:,1))
+       call getfield(fname, vname2, dims=dims, field=vecpair(:,2))
+    else
+       wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid1//'.to.Ct.bilinear.nc'
+       call getfield(fname, vname1, dims=dims, field=vecpair(:,1), wgts=trim(wgtsfile))
+       if (debug)write(logunit,'(a)')'wgtsfile for 2d vector '//trim(vname1)//'   '//trim(wgtsfile)
+       wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid2//'.to.Ct.bilinear.nc'
+       call getfield(fname, vname2, dims=dims, field=vecpair(:,2), wgts=trim(wgtsfile))
+       if (debug)write(logunit,'(a)')'wgtsfile for 2d vector '//trim(vname2)//'   '//trim(wgtsfile)
+    end if
 
     urot = 0.0; vrot = 0.0
     do ii = 1,dims(1)*dims(2)
@@ -207,10 +212,15 @@ contains
 
     if (debug)write(logunit,'(a)')'enter '//trim(subname)
 
-    wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid1//'.to.Ct.bilinear.nc'
-    call getfield(fname, vname1, dims=dims, field=vecpair(:,:,1), wgts=trim(wgtsfile))
-    wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid2//'.to.Ct.bilinear.nc'
-    call getfield(fname, vname2, dims=dims, field=vecpair(:,:,2), wgts=trim(wgtsfile))
+    if (trim(vgrid1) == 'Ct' .and. trim(vgrid2) == 'Ct') then
+       call getfield(fname, vname1, dims=dims, field=vecpair(:,:,1))
+       call getfield(fname, vname2, dims=dims, field=vecpair(:,:,2))
+    else
+       wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid1//'.to.Ct.bilinear.nc'
+       call getfield(fname, vname1, dims=dims, field=vecpair(:,:,1), wgts=trim(wgtsfile))
+       wgtsfile = trim(wdir)//'tripole.'//trim(fsrc)//'.'//vgrid2//'.to.Ct.bilinear.nc'
+       call getfield(fname, vname2, dims=dims, field=vecpair(:,:,2), wgts=trim(wgtsfile))
+    end if
 
     do k = 1,dims(3)
        urot = 0.0; vrot = 0.0
@@ -591,11 +601,11 @@ contains
   !-----------------------------------------------------------------------------------
 
   subroutine write_grib2_2d(fname, gcf, dims, nflds, field, vfill)
-   
+
        implicit none
-   
+
        character(len=*),    intent(in) :: fname
-       type(vardefs),       intent(in) :: gcf(:) 
+       type(vardefs),       intent(in) :: gcf(:)
        integer(4),          intent(in) :: dims(2)
        integer(4),          intent(in) :: nflds
        real(4),             intent(inout) :: field(dims(1)*dims(2),nflds)
@@ -621,13 +631,13 @@ contains
        real(8)    :: coordlist
        integer(4) :: n, lon0, lon1, lat0, lat1
        integer(4) :: ideflist, idefnum
-       logical*1 :: bmp(dims(1)*dims(2)) 
+       logical*1 :: bmp(dims(1)*dims(2))
 
        real(4):: max_val, min_val, mean_val, count_val
 
        npt = dims(1) * dims(2)
-   
-       max_bytes = npt * 4  
+
+       max_bytes = npt * 4
        bmp=.true.
 
        call getlun(lunout)
@@ -636,13 +646,13 @@ contains
            write(0, *) 'Error opening grib2 file ', trim(fname)
            return
        end if
-   
+
        call retrieve_time( fortime , ref_time )
 
        ! Initialize GRIB2 message sections
        listsec0(1) = gcf(1)%var_g1     ! Discipline - GRIB Master Table Number (Code Table 0.0)
        listsec0(2) = 2                 ! GRIB Edition Number (currently 2)
-   
+
        listsec1(1) = gcf(1)%var_g3     ! Originating Centre (Common Code Table C-1)
        listsec1(2) = 0                 ! Originating Sub-centre (local table) EMC=4
        listsec1(3) = gcf(1)%var_g2     ! GRIB Master Tables Version Number (Code Table 1.0)
@@ -663,35 +673,35 @@ contains
        if (dims(1) == 360  .and. dims(2) == 181) dij= 1000000     ! 1deg rectilinear
        if (dims(1) == 72   .and. dims(2) == 36) dij= 5000000      ! 5deg rectilinear
 
-       lon0 = 0 
+       lon0 = 0
        lon1 = 360000000 - dij
        lat0 = -90000000
        lat1 = 90000000
 
-       ! Populate the jgdt array for Template 3.0 
-       jgdt(1) = 6              
-       jgdt(2) = 0              
-       jgdt(3) = 0                
-       jgdt(4) = 0                 
-       jgdt(5) = 0                  
-       jgdt(6) = 0                
-       jgdt(7) = 0                 
-       jgdt(8) = dims(1)             
-       jgdt(9) = dims(2)        
+       ! Populate the jgdt array for Template 3.0
+       jgdt(1) = 6
+       jgdt(2) = 0
+       jgdt(3) = 0
+       jgdt(4) = 0
+       jgdt(5) = 0
+       jgdt(6) = 0
+       jgdt(7) = 0
+       jgdt(8) = dims(1)
+       jgdt(9) = dims(2)
        jgdt(10) = 0
-       jgdt(11) = -1    
+       jgdt(11) = -1
        jgdt(12) = lat0
        jgdt(13) = lon0
-       jgdt(14) = 48  
+       jgdt(14) = 48
        jgdt(15) = lat1
        jgdt(16) = lon1
        jgdt(17) = dij
        jgdt(18) = dij
-       jgdt(19) = 64 
+       jgdt(19) = 64
 
        igdtnum=0
        ! Define igds GRIB2 - SECTION 3
-       igds(1) = 0          ! Source of grid definition 
+       igds(1) = 0          ! Source of grid definition
        igds(2) = npt        ! Number of grid points
        igds(3) = 0          ! Number of octets for each additional grid points definition
        igds(4) = 0          ! Interpretation of list for optional points definition
@@ -719,33 +729,33 @@ contains
 
          listsec0(1) = gcf(n)%var_g1
 
-         call gribcreate(cgrib, max_bytes, listsec0, listsec1, ierr) 
+         call gribcreate(cgrib, max_bytes, listsec0, listsec1, ierr)
          if (ierr /= 0) then
             write(0, *) 'Error initializing GRIB2 message', ierr
             return
          end if
 
-         call addgrid(cgrib, max_bytes, igds, jgdt, igdtlen, ideflist, idefnum, ierr) 
+         call addgrid(cgrib, max_bytes, igds, jgdt, igdtlen, ideflist, idefnum, ierr)
          if (ierr /= 0) then
              write(0, *) 'Error adding grid to GRIB2 message', ierr
              return
          end if
 
-         ! Create Section 4 parametrs    
+         ! Create Section 4 parametrs
          ipdtnum=0
 
          jpdt(1)=gcf(n)%var_g5   ! parm number catagory
          jpdt(2)=gcf(n)%var_g6   ! parm number
          jpdt(3)=2               ! (0-analysis, 1-initialazation, 2-forecast, .. GRIB2 - CODE TABLE 4.3 )
-         jpdt(4)=0               !  
+         jpdt(4)=0               !
          jpdt(5)=96              ! Code ON388 Table A- GFS
-         jpdt(6)=0               !    
-         jpdt(7)=0               ! 
+         jpdt(6)=0               !
+         jpdt(7)=0               !
          jpdt(8)=1               ! unit (Hour=1)    6hour=11     (ask later) Table 4.4
          jpdt(9)=fortime         ! forecast time
          jpdt(10)=gcf(n)%var_g7  ! level ID (1-Ground or Water Surface, 101 mean sea level, 160 depth bellow mean sea level , 168-Ocean Model Layer,...)
-         jpdt(11)=0              ! 
-         jpdt(12)=0              ! 
+         jpdt(11)=0              !
+         jpdt(12)=0              !
          jpdt(13)=0
          jpdt(14)=0
          jpdt(15)=0
@@ -757,15 +767,15 @@ contains
          numcoord=0
          coordlist=0.  ! needed for hybrid vertical coordinate
 
-         ibmap = 0     ! Bitmap indicator ( see Code Table 6.0 ) 
+         ibmap = 0     ! Bitmap indicator ( see Code Table 6.0 )
          bmp=.false.
 
-         if ((trim(gcf(n)%name_gb2) .eq. 'WTMP' ) .or.  (trim(gcf(n)%name_gb2) .eq. 'ICETMP' )) then 
+         if ((trim(gcf(n)%name_gb2) .eq. 'WTMP' ) .or.  (trim(gcf(n)%name_gb2) .eq. 'ICETMP' )) then
             where ( field(:,n) .ne. vfill ) field(:,n) = field(:,n) + 273.15
          endif
 
          if (trim(gcf(n)%name_gb2) == 'THFLX') then
-           idx=-1      
+           idx=-1
            do i = 1, size(gcf)
              if (trim(gcf(i)%name_gb2) .eq. 'NSWRF') then
               idx = i
@@ -773,7 +783,7 @@ contains
              end if
            end do
            if (idx > 0) then
-              where ( (field(:, n) .ne. vfill) .and. (field(:, idx) .ne. vfill) ) 
+              where ( (field(:, n) .ne. vfill) .and. (field(:, idx) .ne. vfill) )
                   field(:, n) = field(:, n) + field(:, idx)
                   bmp(:)=.true.
               end where
@@ -785,7 +795,7 @@ contains
 
          where ( field(:,n) .ne. vfill )  bmp(:)= .true.
 
-         !  Create Section 5 parametrs   
+         !  Create Section 5 parametrs
          idrtnum = 0                            ! Template 5.0 (Grid Point Data - simple Packing)
 
          idrtmpl(:)=0
@@ -803,7 +813,7 @@ contains
 
          if (debug) write(logunit, *) 'idrtmpl: ', idrtmpl
 
-         tmpfld=0 
+         tmpfld=0
          tmpfld=real(field(:,n), 8)
 
          ! Compute max, min, and mean
@@ -829,7 +839,7 @@ contains
          call wryte(lunout, lengrib, cgrib)
 
          deallocate(cgrib)
-      
+
        end do
 
        call baclose(lunout, ierr)
@@ -847,7 +857,7 @@ contains
   !-----------------------------------------------------------------------------------
 
   subroutine write_grib2_3d(fname, gcf, dims, nflds, field, vfill)
-   
+
    implicit none
 
    character(len=*),    intent(in) :: fname
@@ -874,13 +884,13 @@ contains
    integer(4) :: numcoord, ibmap
    real(8):: coordlist
    integer(4) :: ideflist, idefnum
-   logical*1 :: bmp( dims(1) * dims(2) ) 
+   logical*1 :: bmp( dims(1) * dims(2) )
 
    integer(4) :: n, lon0, lon1, lat0, lat1, nlay, lyr
    integer(4), dimension(40) :: dep1
    integer(4), dimension(28) :: dep2
    integer(4), dimension(:), allocatable :: dep
-     
+
    npt = dims(1) * dims(2)
 
    max_bytes = npt * 4
@@ -925,23 +935,23 @@ contains
       nlay = 40
       dep = dep1
    end if
-  
+
    if (dims(1) == 720 .and. dims(2) == 361) then   ! 1/2deg rectilinear
       dij = 500000
       nlay = 40
       dep = dep1
    end if
-  
+
    if (dims(1) == 360 .and. dims(2) == 181) then   ! 1deg rectilinear
       dij = 1000000
       nlay = 40
       dep = dep1
    end if
-  
+
    if (dims(1) == 72  .and. dims(2) == 36 ) then   ! 5deg rectilinear
       dij = 5000000
       nlay = 25
-      dep = dep2   
+      dep = dep2
    end if
 
    lon0 = 0
@@ -950,29 +960,29 @@ contains
    lat1 = 90000000
 
    ! Populate the jgdt array for Template 3.0 (changed parameters to current grib2 files)
-   jgdt(1) = 6              
-   jgdt(2) = 0              
-   jgdt(3) = 0                
-   jgdt(4) = 0                 
-   jgdt(5) = 0                  
-   jgdt(6) = 0                
-   jgdt(7) = 0                 
-   jgdt(8) = dims(1)             
-   jgdt(9) = dims(2)        
+   jgdt(1) = 6
+   jgdt(2) = 0
+   jgdt(3) = 0
+   jgdt(4) = 0
+   jgdt(5) = 0
+   jgdt(6) = 0
+   jgdt(7) = 0
+   jgdt(8) = dims(1)
+   jgdt(9) = dims(2)
    jgdt(10) = 0
-   jgdt(11) = -1   
+   jgdt(11) = -1
    jgdt(12) = lat0
    jgdt(13) = lon0
-   jgdt(14) = 48   
+   jgdt(14) = 48
    jgdt(15) = lat1
    jgdt(16) = lon1
    jgdt(17) = dij
    jgdt(18) = dij
-   jgdt(19) = 64 
+   jgdt(19) = 64
 
    igdtnum=0
    ! Define igds GRIB2 - SECTION 3
-   igds(1) = 0          ! Source of grid definition 
+   igds(1) = 0          ! Source of grid definition
    igds(2) = npt        ! Number of grid points
    igds(3) = 0          ! Number of octets for each additional grid points definition
    igds(4) = 0          ! Interpretation of list for optional points definition
@@ -993,7 +1003,7 @@ contains
 
    ideflist=0
    idefnum=0
-   
+
    do lyr=1,nlay
 
     do n=1,nflds
@@ -1002,7 +1012,7 @@ contains
 
      listsec0(1) = gcf(n)%var_g1
 
-     call gribcreate(cgrib, max_bytes, listsec0, listsec1, ierr) 
+     call gribcreate(cgrib, max_bytes, listsec0, listsec1, ierr)
      if (ierr /= 0) then
         write(0, *) 'Error initializing GRIB2 message', ierr
         return
@@ -1010,23 +1020,23 @@ contains
 
      if (debug) write(logunit, *) 'n, nflds, npt, lay: ', n, nflds, npt, lyr, gcf(n)%discription_gb2, gcf(n)%var_fillvalue
 
-     call addgrid(cgrib, max_bytes, igds, jgdt, igdtlen, ideflist, idefnum, ierr) 
+     call addgrid(cgrib, max_bytes, igds, jgdt, igdtlen, ideflist, idefnum, ierr)
      if (ierr /= 0) then
          write(0, *) 'Error adding grid to GRIB2 message', ierr
          return
      end if
 
-     !  Create Section 4 parametrs    
+     !  Create Section 4 parametrs
      ipdtnum=0
 
 
      jpdt(1)=gcf(n)%var_g5   ! parm number catagory
      jpdt(2)=gcf(n)%var_g6   ! parm number
      jpdt(3)=2               ! (0-analysis, 1-initialazation, 2-forecast, .. GRIB2 - CODE TABLE 4.3 )
-     jpdt(4)=0               !  
+     jpdt(4)=0               !
      jpdt(5)=96              ! Code ON388 Table A- GFS
-     jpdt(6)=0               !    
-     jpdt(7)=0               ! 
+     jpdt(6)=0               !
+     jpdt(7)=0               !
      jpdt(8)=1               ! unit (Hour=1)    6hour=11     (ask later) Table 4.4
      jpdt(9)=fortime         ! forecast hour
      jpdt(10)=gcf(n)%var_g7  ! level ID (1-Ground or Water Surface, 101 mean sea level, 160 depth bellow mean sea level , 168-Ocean Model Layer,...)
@@ -1046,7 +1056,7 @@ contains
      ibmap=0     ! Bitmap indicator ( see Code Table 6.0 )
      bmp=.true.
 
-     if ((trim(gcf(n)%name_gb2) .eq. 'WTMP' ) .or.  (trim(gcf(n)%name_gb2) .eq. 'ICETMP' )) then 
+     if ((trim(gcf(n)%name_gb2) .eq. 'WTMP' ) .or.  (trim(gcf(n)%name_gb2) .eq. 'ICETMP' )) then
         where ( field(:,lyr,n) .ne. vfill ) field(:,lyr,n) = field(:,lyr,n) + 273.15
      endif
 
@@ -1062,10 +1072,10 @@ contains
      idrtmpl(2) = 0             ! Binary scale factor (scale by 2^E)
      idrtmpl(3) = 3             ! Decimal scale factor (scale by 10^D)
      idrtmpl(4) = 0             !
-     idrtmpl(5) = 0             ! 
-     idrtmpl(6) = 0             ! 
+     idrtmpl(5) = 0             !
+     idrtmpl(6) = 0             !
      ! Reserved fields
-     idrtmpl(7:16) = 0          ! Reserved for future use 
+     idrtmpl(7:16) = 0          ! Reserved for future use
 
      idrtlen=size(idrtmpl)
 
@@ -1086,7 +1096,7 @@ contains
      call wryte(lunout, lengrib, cgrib)
 
      deallocate(cgrib)
-  
+
     end do
    end do
 
@@ -1105,11 +1115,11 @@ end subroutine write_grib2_3d
   subroutine getlun(lun)
    integer, intent(out) :: lun
    logical :: is_open
-   lun = 50  
+   lun = 50
    do
        inquire(unit=lun, opened=is_open)
        if (.not. is_open) then
-           return  
+           return
        else
            lun = lun + 1
        end if
@@ -1144,12 +1154,12 @@ end subroutine write_grib2_3d
    call nf90_err(nf90_get_att(ncid, time_varid, 'units', units_str), 'get attribute: units')
 
    if (trim(ftype) == 'ocean') then
-      read(units_str(13:30), '(I4,1X,I2,1X,I2,1X,I2,1X,I2,1X,I2)') &          
+      read(units_str(13:30), '(I4,1X,I2,1X,I2,1X,I2,1X,I2,1X,I2)') &
        ref_year, ref_month, ref_day, ref_hour, ref_min, ref_sec
    else
-      read(units_str(12:29), '(I4,1X,I2,1X,I2,1X,I2,1X,I2,1X,I2)') &       
+      read(units_str(12:29), '(I4,1X,I2,1X,I2,1X,I2,1X,I2,1X,I2)') &
       ref_year, ref_month, ref_day, ref_hour, ref_min, ref_sec
-     forecast_hour=24*forecast_hour 
+     forecast_hour=24*forecast_hour
    end if
 
    ref_time(1) = ref_year
@@ -1178,5 +1188,5 @@ end subroutine write_grib2_3d
       stop 99
     end if
   end subroutine nf90_err
-  
+
 end module utils_mod
